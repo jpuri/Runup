@@ -5,7 +5,14 @@ import getWeb3 from "./getWeb3";
 import "./App.css";
 
 class App extends Component {
-  state = { web3: null, accounts: null, contract: null };
+  state = {
+    web3: null,
+    accounts: [],
+    balances: [],
+    contract: null,
+    address: null,
+    transferAmount: 0,
+  };
 
   componentDidMount = async () => {
     try {
@@ -17,14 +24,15 @@ class App extends Component {
         RunupTokenContract.abi,
         deployedNetwork && deployedNetwork.address
       );
+      await instance.methods.balanceOf(accounts[0]).send({ from: accounts[0] });
+      const balance = await instance.methods.balanceOf(accounts[0]).call();
 
-      this.setState({ web3, accounts, contract: instance });
-      console.log(
-        await web3.eth.getBalance("0x7F23b976b2629a7FBe05870feaf60CA8b7Db7D1C")
-      );
-      console.log(
-        await web3.eth.getBalance("0x3EF6E2A3B4859cBC262f55e69989ee74f7BAFa10")
-      );
+      this.setState({
+        web3,
+        accounts,
+        balances: [balance],
+        contract: instance,
+      });
     } catch (error) {
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`
@@ -33,36 +41,69 @@ class App extends Component {
     }
   };
 
-  // runExample = async () => {
-  //   const { accounts, contract } = this.state;
+  setAddress = (event) => {
+    this.setState({ address: event.target.value });
+  };
 
-  //   // Stores a given value, 5 by default.
-  //   await contract.methods.set(5).send({ from: accounts[0] });
+  setTransferAmount = (event) => {
+    this.setState({ transferAmount: event.target.value });
+  };
 
-  //   // Get the value from the contract to prove it worked.
-  //   const response = await contract.methods.get().call();
+  transfer = async () => {
+    const { accounts, contract, address, balances, transferAmount } =
+      this.state;
 
-  //   // Update state with the result.
-  //   this.setState({ storageValue: response });
-  // };
+    if (transferAmount <= 0) return;
+    await contract.methods
+      .transfer(address, transferAmount)
+      .send({ from: accounts[0] });
+    await contract.methods.transfer(address, transferAmount).call();
+    const [owner, rest = []] = balances;
+
+    await contract.methods.balanceOf(address).send({ from: accounts[0] });
+    const balance = await contract.methods.balanceOf(address).call();
+
+    this.setState({
+      accounts: [...accounts, address],
+      balances: [owner - transferAmount, ...rest, balance],
+    });
+  };
 
   render() {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
+    const { accounts, balances } = this.state;
     return (
       <div className="App">
-        <h1>Good to Go!</h1>
-        <p>Your Truffle Box is installed and ready.</p>
-        <h2>Smart Contract Example</h2>
-        <p>
-          If your contracts compiled and migrated successfully, below will show
-          a stored value of 5 (by default).
-        </p>
-        <p>
-          Try changing the value stored on <strong>line 40</strong> of App.js.
-        </p>
-        <div>Accounts are: {JSON.stringify(this.state.accounts)}</div>
+        <h3>Runup Token Balances</h3>
+        <table style={{ border: "1px solid lightgray", marginTop: 75 }}>
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Account</th>
+              <th>Runup Balance</th>
+            </tr>
+            {accounts.map((account, index) => (
+              <tr>
+                <td>{index + 1}</td>
+                <td>{account}</td>
+                <td>{balances[index]}</td>
+              </tr>
+            ))}
+          </thead>
+        </table>
+        <h3 style={{ marginTop: 75 }}>Transfer Runup Tokens</h3>
+        <div>
+          Address: <input onChange={(event) => this.setAddress(event)} />
+        </div>
+        <div>
+          Number of tokens:{" "}
+          <input onChange={(event) => this.setTransferAmount(event)} />
+        </div>
+        <button type="button" onClick={() => this.transfer()}>
+          Transfer
+        </button>
       </div>
     );
   }
