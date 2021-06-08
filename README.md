@@ -5,7 +5,7 @@ Runup token is implementation of ERC-20 token from scratch (without using any li
 #### Technology stack:
 
 1. Ethereum
-2. Colidity
+2. Solidity
 3. Metamask
 4. Ganache
 5. Web3.js
