@@ -101,7 +101,7 @@ class App extends Component {
           Number of tokens:{" "}
           <input onChange={(event) => this.setTransferAmount(event)} />
         </div>
-        <button type="button" onClick={() => this.transfer()}>
+        <button type="button" onClick={this.transfer}>
           Transfer
         </button>
       </div>
